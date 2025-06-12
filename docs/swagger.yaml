@@ -1,0 +1,199 @@
+basePath: /api
+definitions:
+  handlers.APIResponse:
+    description: Estructura estándar de respuesta de la API
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.DeviceModel:
+    description: Modelo completo de un dispositivo IoT
+    properties:
+      active_time:
+        type: integer
+      category:
+        type: string
+      id:
+        type: string
+      ip:
+        type: string
+      local_key:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      online:
+        type: boolean
+      owner_id:
+        type: string
+      product_id:
+        type: string
+      product_name:
+        type: string
+      status:
+        items:
+          properties:
+            code:
+              type: string
+            value: {}
+          type: object
+        type: array
+      sub:
+        type: boolean
+      time_zone:
+        type: string
+      uid:
+        type: string
+      update_time:
+        type: integer
+      uuid:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: Soporte API
+    url: http://www.swagger.io/support
+  description: API REST para gestión de dispositivos IoT con arquitectura limpia
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: API de Dispositivos IoT
+  version: "1.0"
+paths:
+  /devices:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista completa de dispositivos registrados en el sistema
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de dispositivos obtenida exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/handlers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.DeviceModel'
+                  type: array
+              type: object
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Obtener todos los dispositivos
+      tags:
+      - dispositivos
+  /devices/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un dispositivo específico usando su identificador único
+      parameters:
+      - description: ID del dispositivo
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispositivo obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/handlers.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.DeviceModel'
+              type: object
+        "400":
+          description: ID de dispositivo inválido
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "404":
+          description: Dispositivo no encontrado
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Obtener dispositivo por ID
+      tags:
+      - dispositivos
+  /devices/online:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene únicamente los dispositivos que están actualmente en línea
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispositivos en línea obtenidos exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/handlers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.DeviceModel'
+                  type: array
+              type: object
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Obtener dispositivos en línea
+      tags:
+      - dispositivos
+  /devices/owner/{ownerId}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todos los dispositivos que pertenecen a un propietario
+        específico
+      parameters:
+      - description: ID del propietario
+        in: path
+        name: ownerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispositivos del propietario obtenidos exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/handlers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.DeviceModel'
+                  type: array
+              type: object
+        "400":
+          description: ID de propietario inválido
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Obtener dispositivos por propietario
+      tags:
+      - dispositivos
+swagger: "2.0"
