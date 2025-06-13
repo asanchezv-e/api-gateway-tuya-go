@@ -24,9 +24,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/devices": {
+        "/tuya/device/{deviceId}": {
             "get": {
-                "description": "Obtiene la lista completa de dispositivos registrados en el sistema",
+                "description": "Obtiene información de un dispositivo específico por su ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -34,178 +34,31 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "dispositivos"
+                    "tuya"
                 ],
-                "summary": "Obtener todos los dispositivos",
-                "responses": {
-                    "200": {
-                        "description": "Lista de dispositivos obtenida exitosamente",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/handlers.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.DeviceModel"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/devices/online": {
-            "get": {
-                "description": "Obtiene únicamente los dispositivos que están actualmente en línea",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dispositivos"
-                ],
-                "summary": "Obtener dispositivos en línea",
-                "responses": {
-                    "200": {
-                        "description": "Dispositivos en línea obtenidos exitosamente",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/handlers.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.DeviceModel"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/devices/owner/{ownerId}": {
-            "get": {
-                "description": "Obtiene todos los dispositivos que pertenecen a un propietario específico",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dispositivos"
-                ],
-                "summary": "Obtener dispositivos por propietario",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID del propietario",
-                        "name": "ownerId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Dispositivos del propietario obtenidos exitosamente",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/handlers.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.DeviceModel"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "ID de propietario inválido",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/devices/{id}": {
-            "get": {
-                "description": "Obtiene un dispositivo específico usando su identificador único",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dispositivos"
-                ],
-                "summary": "Obtener dispositivo por ID",
+                "summary": "Obtener información de dispositivo",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "ID del dispositivo",
-                        "name": "id",
+                        "name": "deviceId",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Dispositivo obtenido exitosamente",
+                        "description": "Información del dispositivo obtenida exitosamente",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/handlers.APIResponse"
+                                    "$ref": "#/definitions/handlers.TuyaAPIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.DeviceModel"
+                                            "$ref": "#/definitions/handlers.TuyaDeviceResponse"
                                         }
                                     }
                                 }
@@ -213,21 +66,56 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "ID de dispositivo inválido",
+                        "description": "ID de dispositivo requerido",
                         "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Dispositivo no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
+                            "$ref": "#/definitions/handlers.TuyaAPIResponse"
                         }
                     },
                     "500": {
-                        "description": "Error interno del servidor",
+                        "description": "Error al obtener información del dispositivo",
                         "schema": {
-                            "$ref": "#/definitions/handlers.APIResponse"
+                            "$ref": "#/definitions/handlers.TuyaAPIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tuya/token": {
+            "get": {
+                "description": "Obtiene un token de acceso de Tuya Cloud API usando las credenciales configuradas",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tuya"
+                ],
+                "summary": "Obtener token de acceso de Tuya",
+                "responses": {
+                    "200": {
+                        "description": "Token obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handlers.TuyaAPIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handlers.TuyaTokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Error al obtener token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TuyaAPIResponse"
                         }
                     }
                 }
@@ -235,11 +123,11 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.APIResponse": {
-            "description": "Estructura estándar de respuesta de la API",
+        "handlers.TuyaAPIResponse": {
             "type": "object",
             "properties": {
                 "data": {},
+                "debug": {},
                 "error": {
                     "type": "string"
                 },
@@ -251,68 +139,48 @@ const docTemplate = `{
                 }
             }
         },
-        "models.DeviceModel": {
-            "description": "Modelo completo de un dispositivo IoT",
+        "handlers.TuyaDeviceResponse": {
             "type": "object",
             "properties": {
-                "active_time": {
-                    "type": "integer"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "ip": {
-                    "type": "string"
-                },
-                "local_key": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "online": {
+                "result": {},
+                "success": {
                     "type": "boolean"
                 },
-                "owner_id": {
-                    "type": "string"
+                "t": {
+                    "type": "integer"
                 },
-                "product_id": {
+                "tid": {
                     "type": "string"
-                },
-                "product_name": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "code": {
-                                "type": "string"
-                            },
-                            "value": {}
+                }
+            }
+        },
+        "handlers.TuyaTokenResponse": {
+            "type": "object",
+            "properties": {
+                "result": {
+                    "type": "object",
+                    "properties": {
+                        "access_token": {
+                            "type": "string"
+                        },
+                        "expire_time": {
+                            "type": "integer"
+                        },
+                        "refresh_token": {
+                            "type": "string"
+                        },
+                        "uid": {
+                            "type": "string"
                         }
                     }
                 },
-                "sub": {
+                "success": {
                     "type": "boolean"
                 },
-                "time_zone": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                },
-                "update_time": {
+                "t": {
                     "type": "integer"
                 },
-                "uuid": {
+                "tid": {
                     "type": "string"
                 }
             }
@@ -326,8 +194,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "API de Dispositivos IoT",
-	Description:      "API REST para gestión de dispositivos IoT con arquitectura limpia",
+	Title:            "API Gateway Tuya Go - SDK Oficial",
+	Description:      "API Gateway para Tuya Cloud siguiendo el patrón del SDK oficial",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

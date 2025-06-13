@@ -1,9 +1,9 @@
 basePath: /api
 definitions:
-  handlers.APIResponse:
-    description: Estructura estándar de respuesta de la API
+  handlers.TuyaAPIResponse:
     properties:
       data: {}
+      debug: {}
       error:
         type: string
       message:
@@ -11,48 +11,34 @@ definitions:
       success:
         type: boolean
     type: object
-  models.DeviceModel:
-    description: Modelo completo de un dispositivo IoT
+  handlers.TuyaDeviceResponse:
     properties:
-      active_time:
-        type: integer
-      category:
-        type: string
-      id:
-        type: string
-      ip:
-        type: string
-      local_key:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      online:
+      result: {}
+      success:
         type: boolean
-      owner_id:
-        type: string
-      product_id:
-        type: string
-      product_name:
-        type: string
-      status:
-        items:
-          properties:
-            code:
-              type: string
-            value: {}
-          type: object
-        type: array
-      sub:
-        type: boolean
-      time_zone:
-        type: string
-      uid:
-        type: string
-      update_time:
+      t:
         type: integer
-      uuid:
+      tid:
+        type: string
+    type: object
+  handlers.TuyaTokenResponse:
+    properties:
+      result:
+        properties:
+          access_token:
+            type: string
+          expire_time:
+            type: integer
+          refresh_token:
+            type: string
+          uid:
+            type: string
+        type: object
+      success:
+        type: boolean
+      t:
+        type: integer
+      tid:
         type: string
     type: object
 host: localhost:8080
@@ -61,139 +47,71 @@ info:
     email: support@swagger.io
     name: Soporte API
     url: http://www.swagger.io/support
-  description: API REST para gestión de dispositivos IoT con arquitectura limpia
+  description: API Gateway para Tuya Cloud siguiendo el patrón del SDK oficial
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
   termsOfService: http://swagger.io/terms/
-  title: API de Dispositivos IoT
+  title: API Gateway Tuya Go - SDK Oficial
   version: "1.0"
 paths:
-  /devices:
+  /tuya/device/{deviceId}:
     get:
       consumes:
       - application/json
-      description: Obtiene la lista completa de dispositivos registrados en el sistema
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de dispositivos obtenida exitosamente
-          schema:
-            allOf:
-            - $ref: '#/definitions/handlers.APIResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.DeviceModel'
-                  type: array
-              type: object
-        "500":
-          description: Error interno del servidor
-          schema:
-            $ref: '#/definitions/handlers.APIResponse'
-      summary: Obtener todos los dispositivos
-      tags:
-      - dispositivos
-  /devices/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Obtiene un dispositivo específico usando su identificador único
+      description: Obtiene información de un dispositivo específico por su ID
       parameters:
       - description: ID del dispositivo
         in: path
-        name: id
+        name: deviceId
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Dispositivo obtenido exitosamente
+          description: Información del dispositivo obtenida exitosamente
           schema:
             allOf:
-            - $ref: '#/definitions/handlers.APIResponse'
+            - $ref: '#/definitions/handlers.TuyaAPIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.DeviceModel'
+                  $ref: '#/definitions/handlers.TuyaDeviceResponse'
               type: object
         "400":
-          description: ID de dispositivo inválido
+          description: ID de dispositivo requerido
           schema:
-            $ref: '#/definitions/handlers.APIResponse'
-        "404":
-          description: Dispositivo no encontrado
-          schema:
-            $ref: '#/definitions/handlers.APIResponse'
+            $ref: '#/definitions/handlers.TuyaAPIResponse'
         "500":
-          description: Error interno del servidor
+          description: Error al obtener información del dispositivo
           schema:
-            $ref: '#/definitions/handlers.APIResponse'
-      summary: Obtener dispositivo por ID
+            $ref: '#/definitions/handlers.TuyaAPIResponse'
+      summary: Obtener información de dispositivo
       tags:
-      - dispositivos
-  /devices/online:
+      - tuya
+  /tuya/token:
     get:
       consumes:
       - application/json
-      description: Obtiene únicamente los dispositivos que están actualmente en línea
+      description: Obtiene un token de acceso de Tuya Cloud API usando las credenciales
+        configuradas
       produces:
       - application/json
       responses:
         "200":
-          description: Dispositivos en línea obtenidos exitosamente
+          description: Token obtenido exitosamente
           schema:
             allOf:
-            - $ref: '#/definitions/handlers.APIResponse'
+            - $ref: '#/definitions/handlers.TuyaAPIResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/models.DeviceModel'
-                  type: array
+                  $ref: '#/definitions/handlers.TuyaTokenResponse'
               type: object
         "500":
-          description: Error interno del servidor
+          description: Error al obtener token
           schema:
-            $ref: '#/definitions/handlers.APIResponse'
-      summary: Obtener dispositivos en línea
+            $ref: '#/definitions/handlers.TuyaAPIResponse'
+      summary: Obtener token de acceso de Tuya
       tags:
-      - dispositivos
-  /devices/owner/{ownerId}:
-    get:
-      consumes:
-      - application/json
-      description: Obtiene todos los dispositivos que pertenecen a un propietario
-        específico
-      parameters:
-      - description: ID del propietario
-        in: path
-        name: ownerId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Dispositivos del propietario obtenidos exitosamente
-          schema:
-            allOf:
-            - $ref: '#/definitions/handlers.APIResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.DeviceModel'
-                  type: array
-              type: object
-        "400":
-          description: ID de propietario inválido
-          schema:
-            $ref: '#/definitions/handlers.APIResponse'
-        "500":
-          description: Error interno del servidor
-          schema:
-            $ref: '#/definitions/handlers.APIResponse'
-      summary: Obtener dispositivos por propietario
-      tags:
-      - dispositivos
+      - tuya
 swagger: "2.0"

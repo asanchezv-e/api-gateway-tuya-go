@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"go-gin-project/config"
+	"api-gateway-tuya-go/handlers"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +13,7 @@ func SetupRoutes(r *gin.Engine) {
 	// Rutas básicas de salud de la API
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "API de Dispositivos IoT - Arquitectura Limpia",
+			"message": "API Gateway Tuya Go - SDK Oficial",
 			"version": "1.0.0",
 			"status":  "online",
 			"swagger": "http://localhost:8080/swagger/index.html",
@@ -29,9 +29,9 @@ func SetupRoutes(r *gin.Engine) {
 	// Configurar Swagger
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Configurar contenedor de dependencias
-	container := config.NewContainer()
+	// Configurar handler de Tuya siguiendo el patrón del SDK oficial
+	tuyaHandler := handlers.NewTuyaHandler()
 	
-	// Configurar rutas de dispositivos
-	SetupDeviceRoutes(r, container.DeviceHandler)
+	// Configurar rutas de Tuya - equivalente a usar config.SetEnv() + token.GetTokenAPI()
+	SetupTuyaRoutes(r, tuyaHandler)
 }
