@@ -19,5 +19,6 @@ func SetupDeviceRoutes(router *gin.Engine, deviceHandler *handlers.DeviceHandler
 			devices.GET("/:id", deviceHandler.GetDeviceByID)                // GET /api/devices/:id
 			devices.GET("/owner/:ownerId", deviceHandler.GetDevicesByOwner) // GET /api/devices/owner/:ownerId
 		}
+		api.GET("/tuya/token", deviceHandler.GetTuyaToken) // GET /api/tuya/token
 	}
-} 
+}
