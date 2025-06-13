@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"go-gin-project/domain/services"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 // DeviceHandler maneja las peticiones HTTP para dispositivos
@@ -40,7 +43,7 @@ type APIResponse struct {
 // @Router /devices [get]
 func (h *DeviceHandler) GetAllDevices(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	devices, err := h.deviceService.GetAllDevices(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, APIResponse{
@@ -92,7 +95,7 @@ func (h *DeviceHandler) GetDeviceByID(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Message: "Error al obtener dispositivo",
@@ -133,7 +136,7 @@ func (h *DeviceHandler) GetDevicesByOwner(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Message: "Error al obtener dispositivos del propietario",
@@ -160,7 +163,7 @@ func (h *DeviceHandler) GetDevicesByOwner(c *gin.Context) {
 // @Router /devices/online [get]
 func (h *DeviceHandler) GetOnlineDevices(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	devices, err := h.deviceService.GetOnlineDevices(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, APIResponse{
@@ -176,4 +179,31 @@ func (h *DeviceHandler) GetOnlineDevices(c *gin.Context) {
 		Message: "Dispositivos en línea obtenidos exitosamente",
 		Data:    devices,
 	})
-} 
+}
+
+func (h *DeviceHandler) GetTuyaToken(c *gin.Context) {
+	_ = godotenv.Load()
+	clientID := os.Getenv("TUYA_CLIENT_ID")
+	clientSecret := os.Getenv("TUYA_CLIENT_SECRET")
+	apiURL := os.Getenv("TUYA_API_URL")
+
+	fmt.Println("clientID:", clientID)
+	fmt.Println("clientSecret:", clientSecret)
+	fmt.Println("apiURL:", apiURL)
+
+	tokenResp, err := services.GetTuyaToken(clientID, clientSecret, apiURL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Message: "Error al obtener token de Tuya",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Message: "Token obtenido exitosamente",
+		Data:    tokenResp,
+	})
+}
