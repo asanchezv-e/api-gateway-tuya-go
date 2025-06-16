@@ -1,7 +1,7 @@
-// Package main contiene la configuración principal de la API de Dispositivos IoT
-// @title API de Dispositivos IoT
+// Package main contiene la configuración principal del API Gateway Tuya Go
+// @title API Gateway Tuya Go - SDK Oficial
 // @version 1.0
-// @description API REST para gestión de dispositivos IoT con arquitectura limpia
+// @description API Gateway para Tuya Cloud siguiendo el patrón del SDK oficial
 // @termsOfService http://swagger.io/terms/
 // @contact.name Soporte API
 // @contact.url http://www.swagger.io/support
@@ -13,14 +13,14 @@
 package main
 
 import (
-	_ "go-gin-project/docs" // docs generado por swag
-	"go-gin-project/routes"
+	_ "api-gateway-tuya-go/docs" // docs generado por swag
+	"api-gateway-tuya-go/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-  r := gin.Default()
+	r := gin.Default()
 	routes.SetupRoutes(r)
-  r.Run()
+	r.Run()
 }
