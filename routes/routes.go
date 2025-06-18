@@ -9,14 +9,19 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, pulsarHandler *handlers.PulsarHandler) {
 	// Rutas básicas de salud de la API
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "API Gateway Tuya Go - SDK Oficial",
+			"message": "API Gateway Tuya Go - SDK Oficial con Listener Pulsar",
 			"version": "1.0.0",
 			"status":  "online",
 			"swagger": "http://localhost:8080/swagger/index.html",
+			"endpoints": gin.H{
+				"tuya_api":       "GET /api/tuya/*",
+				"pulsar_status":  "GET /api/pulsar/status", 
+			},
+			"notes": "El listener de Pulsar se inicia automáticamente con el servidor",
 		})
 	})
 
@@ -34,4 +39,7 @@ func SetupRoutes(r *gin.Engine) {
 	
 	// Configurar rutas de Tuya - equivalente a usar config.SetEnv() + token.GetTokenAPI()
 	SetupTuyaRoutes(r, tuyaHandler)
+	
+	// Configurar rutas de Pulsar para listener de cambios de estado
+	SetupPulsarRoutes(r, pulsarHandler)
 }

@@ -24,6 +24,30 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/pulsar/status": {
+            "get": {
+                "description": "Obtiene información detallada del estado actual del listener de Pulsar incluyendo configuración y conectividad. El listener se inicia automáticamente con el servidor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Pulsar"
+                ],
+                "summary": "Obtener estado del listener de Pulsar",
+                "responses": {
+                    "200": {
+                        "description": "Estado detallado del listener con configuración y métricas",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/tuya/device/{deviceId}": {
             "get": {
                 "description": "Obtiene información de un dispositivo específico por su ID",
@@ -194,8 +218,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "API Gateway Tuya Go - SDK Oficial",
-	Description:      "API Gateway para Tuya Cloud siguiendo el patrón del SDK oficial",
+	Title:            "API Gateway Tuya Go - SDK Oficial con Listener Pulsar",
+	Description:      "API Gateway para Tuya Cloud con listener de mensajes Pulsar para cambios de estado de dispositivos",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
