@@ -47,14 +47,33 @@ info:
     email: support@swagger.io
     name: Soporte API
     url: http://www.swagger.io/support
-  description: API Gateway para Tuya Cloud siguiendo el patrón del SDK oficial
+  description: API Gateway para Tuya Cloud con listener de mensajes Pulsar para cambios
+    de estado de dispositivos
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
   termsOfService: http://swagger.io/terms/
-  title: API Gateway Tuya Go - SDK Oficial
+  title: API Gateway Tuya Go - SDK Oficial con Listener Pulsar
   version: "1.0"
 paths:
+  /pulsar/status:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene información detallada del estado actual del listener de
+        Pulsar incluyendo configuración y conectividad. El listener se inicia automáticamente
+        con el servidor.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Estado detallado del listener con configuración y métricas
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Obtener estado del listener de Pulsar
+      tags:
+      - Pulsar
   /tuya/device/{deviceId}:
     get:
       consumes:
