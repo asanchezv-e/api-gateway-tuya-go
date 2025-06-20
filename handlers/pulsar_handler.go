@@ -43,6 +43,12 @@ func NewPulsarHandler() *PulsarHandler {
 	}
 }
 
+// TopicForAccessIDTest es una función que devuelve el topic para el accessID de prueba
+func TopicForAccessIDTest(accessID string) string {
+	topic := fmt.Sprintf("persistent://%s/out/event-test", accessID)
+	return topic
+}
+
 // LoadConfig carga la configuración desde las variables de entorno
 func (p *PulsarHandler) LoadConfig() error {
 	// Cargar variables de entorno desde .env
@@ -54,9 +60,16 @@ func (p *PulsarHandler) LoadConfig() error {
 	accessID := os.Getenv("TUYA_ACCESS_ID")
 	accessKey := os.Getenv("TUYA_ACCESS_KEY")
 	pulsarAddr := os.Getenv("TUYA_PULSAR_ADDR")
+	environment := os.Getenv("TUYA_ENVIRONMENT")
 
 	if accessID == "" || accessKey == "" || pulsarAddr == "" {
 		return fmt.Errorf("configuración de Pulsar incompleta: TUYA_ACCESS_ID, TUYA_ACCESS_KEY y TUYA_PULSAR_ADDR son requeridos")
+	}
+
+	// Validar ambiente - por defecto usar testing para seguridad
+	if environment == "" {
+		environment = "testing"
+		fmt.Println("⚠️ TUYA_ENVIRONMENT no definido, usando 'testing' por defecto")
 	}
 
 	// Verificar que las credenciales no sean valores de ejemplo
@@ -76,11 +89,26 @@ func (p *PulsarHandler) LoadConfig() error {
 		}
 	}
 
+	// Determinar el topic según el ambiente
+	var topic string
+	switch strings.ToLower(environment) {
+	case "production", "prod":
+		topic = pulsar.TopicForAccessID(accessID)
+		fmt.Printf("🏭 Ambiente PRODUCCIÓN - Topic: %s\n", topic)
+	case "testing", "test", "dev", "development":
+		topic = TopicForAccessIDTest(accessID)
+		fmt.Printf("🧪 Ambiente TESTING - Topic: %s\n", topic)
+	default:
+		return fmt.Errorf("ambiente no válido: %s. Valores permitidos: production, testing", environment)
+	}
+
 	p.config = models.PulsarConfig{
-		AccessID:   accessID,
-		AccessKey:  accessKey,
-		PulsarAddr: pulsarAddr,
-		Topic:      pulsar.TopicForAccessID(accessID),
+		AccessID:    accessID,
+		AccessKey:   accessKey,
+		PulsarAddr:  pulsarAddr,
+		Topic:       topic,
+		Environment: environment,
+		DebugMode:   false,
 	}
 
 	return nil
@@ -103,6 +131,7 @@ func (p *PulsarHandler) StartListener() error {
 	tylog.SetGlobalLog("sdk", false) // false = mostrar logs para debug
 	
 	fmt.Println("🎧 Listener de dispositivos Tuya iniciado")
+	fmt.Printf("🌍 Ambiente: %s\n", strings.ToUpper(p.config.Environment))
 	fmt.Printf("📡 Conectando a: %s\n", p.config.PulsarAddr)
 	fmt.Printf("📝 Topic: %s\n", p.config.Topic)
 
@@ -207,7 +236,7 @@ func (h *DeviceMessageHandler) HandlePayload(ctx context.Context, msg pulsar.Mes
 
 	// Log de payload recibido según documentación oficial
 	tylog.Info("payload preview", tylog.String("payload", string(payload)))
-	fmt.Printf("🔍 [%s] Mensaje recibido\n", time.Now().Format("15:04:05"))
+	fmt.Printf("📥 [%s] Nuevo mensaje Pulsar recibido\n", time.Now().Format("15:04:05"))
 
 	// Decodificar payload según el ejemplo oficial
 	m := map[string]interface{}{}
@@ -220,7 +249,10 @@ func (h *DeviceMessageHandler) HandlePayload(ctx context.Context, msg pulsar.Mes
 	// Extraer data según patrón oficial
 	bs, ok := m["data"].(string)
 	if !ok {
-		fmt.Printf("⚠️ No se encontró campo 'data' en payload\n")
+		fmt.Printf("⚠️  Estructura de mensaje inválida - No se encontró campo 'data'\n")
+		if h.DebugMode {
+			fmt.Printf("   🔍 Campos disponibles: %v\n", getMapKeys(m))
+		}
 		return nil
 	}
 
@@ -235,13 +267,19 @@ func (h *DeviceMessageHandler) HandlePayload(ctx context.Context, msg pulsar.Mes
 	decode := tyutils.EcbDecrypt(de, []byte(h.AesSecret))
 	tylog.Info("aes decode", tylog.ByteString("decode payload", decode))
 
-	// Mostrar datos decodificados
-	fmt.Printf("📄 Datos decodificados: %s\n", string(decode))
+	// Mostrar datos decodificados en modo debug
+	if h.DebugMode {
+		fmt.Printf("🔍 Datos decodificados (raw): %s\n", string(decode))
+	}
 
 	// Intentar decodificar como cambio de estado de dispositivo
 	var deviceChange models.DeviceStatusChange
 	if err := json.Unmarshal(decode, &deviceChange); err != nil {
-		fmt.Printf("📊 Mensaje genérico (no es cambio de dispositivo)\n")
+		fmt.Printf("📊 Mensaje de otro tipo (no es cambio de estado de dispositivo)\n")
+		if h.DebugMode {
+			fmt.Printf("   🔍 Error de decodificación: %v\n", err)
+			fmt.Printf("   🔍 Contenido recibido: %s\n", string(decode))
+		}
 		return nil
 	}
 
@@ -255,13 +293,149 @@ func (h *DeviceMessageHandler) HandlePayload(ctx context.Context, msg pulsar.Mes
 func (h *DeviceMessageHandler) processDeviceStatusChange(change models.DeviceStatusChange) {
 	timestamp := time.Now()
 	
-	fmt.Printf("\n🔔 [%s] Dispositivo: %s\n", 
-		timestamp.Format("15:04:05"), 
-		change.DevID)
+	// Crear una línea separadora visual
+	fmt.Println("\n" + strings.Repeat("─", 80))
 	
-	for _, status := range change.Status {
-		fmt.Printf("   📊 %s: %v\n", status.Code, status.Value)
+	// Encabezado del dispositivo con información clave
+	fmt.Printf("🏠 CAMBIO DE ESTADO - %s\n", timestamp.Format("15:04:05 02/01/2006"))
+	fmt.Printf("🔧 Dispositivo: %s\n", change.DevID)
+	
+	if change.ProductKey != "" {
+		fmt.Printf("🏷️  Producto: %s\n", change.ProductKey)
 	}
+	
+	if change.DataID != "" {
+		fmt.Printf("📄 ID de Datos: %s\n", change.DataID)
+	}
+	
+	// Mostrar estados cambiados
+	if len(change.Status) > 0 {
+		fmt.Printf("📊 Estados Actualizados (%d):\n", len(change.Status))
+		
+		for i, status := range change.Status {
+			// Formatear timestamp del estado si está disponible
+			var timeStr string
+			if status.T > 0 {
+				statusTime := time.Unix(status.T, 0)
+				timeStr = fmt.Sprintf(" ⏰ %s", statusTime.Format("15:04:05"))
+			}
+			
+			// Determinar emoji basado en el código del estado
+			emoji := h.getStatusEmoji(status.Code)
+			
+			// Formatear valor de forma más legible
+			valueStr := h.formatStatusValue(status.Value)
+			
+			fmt.Printf("   %s %s: %s%s\n", 
+				emoji, 
+				h.formatStatusCode(status.Code), 
+				valueStr,
+				timeStr)
+			
+			// Agregar separador entre estados si hay múltiples
+			if i < len(change.Status)-1 && len(change.Status) > 1 {
+				fmt.Println("   ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈")
+			}
+		}
+	} else {
+		fmt.Println("⚠️  No se encontraron estados en el mensaje")
+	}
+	
+	fmt.Println(strings.Repeat("─", 80))
+}
+
+// getStatusEmoji devuelve un emoji apropiado basado en el código de estado
+func (h *DeviceMessageHandler) getStatusEmoji(code string) string {
+	emojiMap := map[string]string{
+		"switch_1":     "🔘",
+		"switch":       "🔘",
+		"switch_led":   "💡",
+		"bright_value": "☀️",
+		"temp_value":   "🌡️",
+		"humidity":     "💧",
+		"battery":      "🔋",
+		"signal":       "📶",
+		"door":         "🚪",
+		"window":       "🪟",
+		"motion":       "🏃",
+		"smoke":        "💨",
+		"gas":          "⛽",
+		"water":        "💧",
+		"power":        "⚡",
+		"energy":       "⚡",
+		"current":      "🔌",
+		"voltage":      "🔌",
+		"lock":         "🔒",
+		"unlock":       "🔓",
+		"online":       "🟢",
+		"offline":      "🔴",
+		"alarm":        "🚨",
+		"fan":          "🌪️",
+		"mode":         "⚙️",
+		"speed":        "💨",
+		"timer":        "⏲️",
+		"countdown":    "⏰",
+	}
+	
+	// Buscar coincidencias parciales en el código
+	codeLower := strings.ToLower(code)
+	for key, emoji := range emojiMap {
+		if strings.Contains(codeLower, key) {
+			return emoji
+		}
+	}
+	
+	return "📊" // Emoji por defecto
+}
+
+// formatStatusCode formatea el código de estado para ser más legible
+func (h *DeviceMessageHandler) formatStatusCode(code string) string {
+	// Reemplazar guiones bajos con espacios y capitalizar
+	formatted := strings.ReplaceAll(code, "_", " ")
+	words := strings.Fields(formatted)
+	
+	for i, word := range words {
+		if len(word) > 0 {
+			words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
+		}
+	}
+	
+	return strings.Join(words, " ")
+}
+
+// formatStatusValue formatea el valor del estado para una mejor visualización
+func (h *DeviceMessageHandler) formatStatusValue(value interface{}) string {
+	switch v := value.(type) {
+	case bool:
+		if v {
+			return "🟢 ENCENDIDO"
+		}
+		return "🔴 APAGADO"
+	case float64:
+		// Si es un número entero, mostrarlo sin decimales
+		if v == float64(int(v)) {
+			return fmt.Sprintf("%.0f", v)
+		}
+		return fmt.Sprintf("%.2f", v)
+	case string:
+		if v == "" {
+			return "(vacío)"
+		}
+		return fmt.Sprintf("\"%s\"", v)
+	case nil:
+		return "(null)"
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// getMapKeys devuelve las claves de un mapa para debugging
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // Stop detiene el listener de Pulsar
@@ -367,6 +541,7 @@ func (p *PulsarHandler) GetStatus() map[string]interface{} {
 	if p.config.Topic != "" {
 		response["topic"] = p.config.Topic
 		response["pulsar_addr"] = p.config.PulsarAddr
+		response["environment"] = p.config.Environment
 	}
 	
 	// Agregar tiempos si está corriendo
