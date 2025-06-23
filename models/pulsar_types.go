@@ -44,5 +44,6 @@ type PulsarConfig struct {
 	AccessKey   string `json:"access_key"`
 	PulsarAddr  string `json:"pulsar_addr"`
 	Topic       string `json:"topic"`
+	Environment string `json:"environment"`
 	DebugMode   bool   `json:"debug_mode"`
 } 
